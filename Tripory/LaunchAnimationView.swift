@@ -102,7 +102,7 @@ struct LaunchAnimationView: View {
                 .frame(width: 300, height: 200)
 
                 VStack(spacing: 10) {
-                    Text("TRIPORY")
+                    Text(verbatim: "TRIPORY")
                         .font(.caption)
                         .tracking(4)
                         .foregroundStyle(.secondary)

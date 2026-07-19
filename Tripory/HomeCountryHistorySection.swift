@@ -53,7 +53,7 @@ struct HomeCountryHistorySection: View {
                 .foregroundStyle(.indigo)
             Text("住んでいる国")
                 .font(.caption.bold())
-                .tracking(1.5)
+                .triporyTracking(1.5)
                 .foregroundStyle(.secondary)
             Spacer()
             if isLatest {

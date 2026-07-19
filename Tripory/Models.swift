@@ -46,6 +46,9 @@ final class CountryRecord {
     var statusRaw: String = CountryStatus.none.rawValue
     /// 「行きたい国」に登録した理由などの自由メモ
     var note: String = ""
+    /// 国の詳細ページのヒーローに使う、ユーザーが明示的に選んだ表紙写真。
+    /// 未設定なら旅の写真から自動で選ぶ。
+    @Attribute(.externalStorage) var coverPhotoData: Data?
 
     init(code: String, status: CountryStatus = .none, note: String = "") {
         self.code = code
@@ -104,7 +107,7 @@ final class TripStop {
     var countryCode: String = ""
     var startDate: Date = Date.now
     var endDate: Date?
-    var photoData: Data?
+    var photos: [Data] = []
     var trip: Trip?
 
     init(
@@ -112,13 +115,13 @@ final class TripStop {
         countryCode: String,
         startDate: Date,
         endDate: Date? = nil,
-        photoData: Data? = nil
+        photos: [Data] = []
     ) {
         self.order = order
         self.countryCode = countryCode
         self.startDate = startDate
         self.endDate = endDate
-        self.photoData = photoData
+        self.photos = photos
     }
 
     var country: Country? { CountryCatalog.byCode[countryCode] }
@@ -145,7 +148,34 @@ final class HomeCountryPeriod {
     var country: Country? { CountryCatalog.byCode[countryCode] }
 }
 
+/// 端末内に1件だけ保持するユーザープロフィール。
+/// 既存の旅行データとは独立して追加し、ストアを作り直さずに段階移行できるようにする。
+@Model
+final class UserProfile {
+    @Attribute(.unique) var id: String = "primary"
+    @Attribute(.externalStorage) var homeHeroPhotoData: Data?
+    var homeHeroFocalX: Double = 0.5
+    var homeHeroFocalY: Double = 0.5
+    var homeHeroScale: Double = 1.0
+    var onboardingCompletedAt: Date?
+    var createdAt: Date = Date.now
+
+    init() {}
+}
+
 extension ModelContext {
+    /// メインプロフィールを取得し、まだなければ1件だけ作成する。
+    func primaryUserProfile() -> UserProfile {
+        let primaryID = "primary"
+        let predicate = #Predicate<UserProfile> { $0.id == primaryID }
+        if let existing = try? fetch(FetchDescriptor(predicate: predicate)).first {
+            return existing
+        }
+        let profile = UserProfile()
+        insert(profile)
+        return profile
+    }
+
     /// 国コードに対応するレコードを取得(なければ作成)
     func record(for code: String) -> CountryRecord {
         let predicate = #Predicate<CountryRecord> { $0.code == code }

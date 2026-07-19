@@ -1,20 +1,29 @@
 import SwiftUI
 import SwiftData
+import MapKit
 
 @main
 struct TriporyApp: App {
     var body: some Scene {
         WindowGroup {
             AppRootContainer()
-                .tint(.teal)
+                .tint(.triporyCoral)
         }
-        .modelContainer(for: [CountryRecord.self, Trip.self, TripStop.self, HomeCountryPeriod.self])
+        .modelContainer(for: [
+            CountryRecord.self,
+            Trip.self,
+            TripStop.self,
+            HomeCountryPeriod.self,
+            UserProfile.self,
+        ])
     }
 }
 
 struct AppRootContainer: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var profiles: [UserProfile]
     @State private var showLaunchAnimation = true
+    @State private var forceHideOnboarding = false
     @AppStorage("appearanceMode") private var appearanceModeRaw = AppearanceMode.system.rawValue
     @AppStorage("homeCountryCode") private var homeCountryCode = ""
 
@@ -22,21 +31,31 @@ struct AppRootContainer: View {
         AppearanceMode(rawValue: appearanceModeRaw) ?? .system
     }
 
+    private var profile: UserProfile? {
+        profiles.first(where: { $0.id == "primary" }) ?? profiles.first
+    }
+
+    private var onboardingMode: OnboardingFlowMode? {
+        guard !forceHideOnboarding else { return nil }
+#if DEBUG
+        // デザイン確認用: 完了済みプロフィールでもオンボーディングを強制表示する。
+        if ProcessInfo.processInfo.arguments.contains("-qaOnboarding") { return .complete }
+#endif
+        if homeCountryCode.isEmpty { return .complete }
+        if profile?.homeHeroPhotoData == nil { return .photoOnly }
+        return nil
+    }
+
     var body: some View {
         ZStack {
             RootView()
 
-            // 起動アニメーションが消える瞬間に一瞬アプリ画面が見えてしまわないよう、
-            // オンボーディングは(必要な間は)最初から常時マウントしておき、
-            // 表示/非表示は不透明度だけで切り替える。
-            if homeCountryCode.isEmpty {
-                OnboardingView { country in
-                    homeCountryCode = country.code
-                    modelContext.record(for: country.code).status = .visited
-                    modelContext.insert(HomeCountryPeriod(countryCode: country.code))
+            if let profile, let onboardingMode {
+                OnboardingFlowView(mode: onboardingMode, profile: profile) {
+                    // SwiftDataのクエリ更新を待たず、即座にゲートを閉じる。
+                    forceHideOnboarding = true
                 }
                 .zIndex(2)
-                .opacity(showLaunchAnimation ? 0 : 1)
                 .allowsHitTesting(!showLaunchAnimation)
             }
 
@@ -46,73 +65,160 @@ struct AppRootContainer: View {
             }
         }
         .preferredColorScheme(appearanceMode.colorScheme)
+        .task {
+            _ = modelContext.primaryUserProfile()
+        }
     }
 }
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var selectedTab = UserDefaults.standard.integer(forKey: "initialTab")
+    @Query private var profiles: [UserProfile]
+    @State private var selectedDestination: RootDestination = .home
     @State private var showingAddTrip = false
-    @State private var searchFocusTrigger = 0
+    @State private var revealPayload: NewCountriesRevealPayload?
     @AppStorage("homeCountryCode") private var homeCountryCode = ""
 
-    @StateObject private var chrome = ChromeVisibility()
+    private var homePhotoData: Data? { profiles.first?.homeHeroPhotoData }
 
-    /// タブのタップは`set`が常に呼ばれるため、既に選択中のタブを再タップしたことを検知できる。
-    /// これを使って「検索タブに他のタブから来たときはフォーカスしない、既に検索タブにいて
-    /// 再タップしたときだけフォーカスする」という挙動を実現する。
-    private var tabSelection: Binding<Int> {
+    /// 「+」タップ時にselectedDestinationへ実際に書き込んでしまうと、TabView自身が
+    /// 「+」への選択遷移(ハイライトのアニメーション)を一度実行してから、こちらが戻す
+    /// 処理をしても間に合わず、一瞬フォーカスが動いて見える。
+    /// カスタムBindingのsetterでその場で横取りし、selectedDestinationには一切
+    /// 書き込まない(getterも常に実際の値を返す)ことで、TabView側からは
+    /// 「+」が選択された事実そのものが観測されないようにする。
+    private var tabSelection: Binding<RootDestination> {
         Binding(
-            get: { selectedTab },
+            get: { selectedDestination },
             set: { newValue in
-                if newValue == 2 && selectedTab == 2 {
-                    searchFocusTrigger += 1
+                if newValue == .add {
+                    showingAddTrip = true
+                } else {
+                    selectedDestination = newValue
                 }
-                selectedTab = newValue
             }
         )
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            TabView(selection: tabSelection) {
-                HomeView(onShowTrips: { withAnimation { selectedTab = 1 } })
-                    .tabItem { Label("ホーム", systemImage: "globe.asia.australia.fill") }
-                    .tag(0)
-                TripTimelineView()
-                    .tabItem { Label("旅の記録", systemImage: "calendar") }
-                    .tag(1)
-                CountryBrowserView(focusTrigger: searchFocusTrigger)
-                    .tabItem { Label("国をさがす", systemImage: "magnifyingglass") }
-                    .tag(2)
+        TabView(selection: tabSelection) {
+            tab(.home) {
+                HomeView(
+                    onShowTrips: { select(.trips) },
+                    onShowWorld: { select(.world) },
+                    onCreateTrip: { showingAddTrip = true }
+                )
             }
-
-            // 常時表示のフローティング追加ボタン。タブ切り替えで消えたり作り直されたりしないよう
-            // TabViewの外側(同じZStack内)に固定で置き、ちらつきを避ける。
-            // 表示/非表示は不透明度だけで切り替え、全画面地図などでは隠す。
-            Button {
-                showingAddTrip = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(
-                        LinearGradient(colors: [.teal, .orange], startPoint: .topLeading, endPoint: .bottomTrailing),
-                        in: Circle()
-                    )
-                    .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+            tab(.trips) { TripTimelineView() }
+            // 「+」はコンテンツを持たない特殊タブ。見た目だけタブバーの他の項目と
+            // 並ぶ普通のアイコンにしつつ、色だけコーラルにして区別する。
+            // タブバーは通常、選択状態に応じてアイコンをテンプレート塗り替えしてしまう
+            // (常に非選択扱いのこのタブは無彩色になる)ため、.paletteレンダリングモードで
+            // 明示的に色を固定し、選択状態に関係なく常にコーラルで出るようにする。
+            Tab(value: RootDestination.add, content: { Color.clear }) {
+                Image(systemName: RootDestination.add.symbol)
+                    .font(.system(size: 22, weight: .semibold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.triporyCoral)
             }
-            .padding(.trailing, 20)
-            .padding(.bottom, 68)
-            .opacity(chrome.isFABHidden ? 0 : 1)
-            .allowsHitTesting(!chrome.isFABHidden)
+            tab(.world) { WorldView() }
+            tab(.me) { SettingsView(isRoot: true) }
         }
-        .environmentObject(chrome)
+        // タブ切り替えの一瞬、各画面の背景がまだ安全領域まで届いていないコマが
+        // 挟まると、ウィンドウの素の背景(黒)がちらつく。TabView自体に控えめな
+        // 地色を敷いておき、そのちらつきが黒でなくこの色になるようにする。
+        .background(Color.triporyCanvas)
         .sheet(isPresented: $showingAddTrip) {
-            TripFormView()
+            TripFormView(presetCountryCode: debugTripFormPreset) { newCountries, totalCount in
+                guard !newCountries.isEmpty else { return }
+                revealPayload = NewCountriesRevealPayload(countries: newCountries, totalCount: totalCount)
+            }
         }
-        .task { seedDemoDataIfRequested() }
+        .fullScreenCover(item: $revealPayload) { payload in
+            NewCountriesRevealView(payload: payload, homePhotoData: homePhotoData) {
+                revealPayload = nil
+                select(.world)
+            }
+        }
+        .task {
+            migrateLegacyHomeCountryIfNeeded()
+            seedDemoDataIfRequested()
+            applyDebugLaunchDestinationIfRequested()
+        }
+        .task(priority: .utility) {
+            // CountryBorders.polygonsByCode(GeoJSONデコード)は実測7.8msで軽微だが、
+            // 地球儀タブを開いた瞬間に走らせる意味はないので先に済ませておく。
+            _ = CountryBorders.polygonsByCode
+
+            // 本命はこちら: MKMapView + MKImageryMapConfigurationの初回生成は
+            // MapKitフレームワーク内部の初期化(mapsdへの接続・シェーダー準備等)を伴い、
+            // 実測でmakeUIViewだけで約55ms かかる。これが地球儀タブを開いた瞬間に
+            // 初めて発生するため、その一瞬の固まりの主因になっていた。
+            // 使い捨てのインスタンスをホーム画面表示から少し経ってバックグラウンドで
+            // 先に1つ作っておくと、MapKit側のプロセス内キャッシュが温まり、
+            // 実際にタブを開いたときの初回生成が速くなる。
+            try? await Task.sleep(for: .seconds(1))
+            await MainActor.run {
+                let warmup = MKMapView()
+                warmup.preferredConfiguration = MKImageryMapConfiguration(elevationStyle: .realistic)
+            }
+        }
+    }
+
+    /// 「住んでいる国」履歴(HomeCountryPeriod)が導入される前に homeCountryCode だけ
+    /// 設定していたユーザーのために、既存の設定から履歴レコードを1件補完する。
+    private func migrateLegacyHomeCountryIfNeeded() {
+        guard !homeCountryCode.isEmpty else { return }
+        let code = homeCountryCode
+        let predicate = #Predicate<HomeCountryPeriod> { $0.countryCode == code }
+        let hasPeriodForCurrentCode = ((try? modelContext.fetchCount(FetchDescriptor(predicate: predicate))) ?? 0) > 0
+        guard !hasPeriodForCurrentCode else { return }
+        modelContext.insert(HomeCountryPeriod(countryCode: homeCountryCode))
+        modelContext.record(for: homeCountryCode).status = .visited
+        try? modelContext.save()
+    }
+
+    private func select(_ destination: RootDestination) {
+        selectedDestination = destination
+    }
+
+    /// アイコンのみのラベルで標準Tabを作る(タブバーに文字を出さない)。
+    private func tab(
+        _ destination: RootDestination,
+        @ViewBuilder content: () -> some View
+    ) -> some TabContent<RootDestination> {
+        Tab(value: destination, content: content) {
+            Label(destination.label, systemImage: destination.symbol)
+                .labelStyle(.iconOnly)
+        }
+    }
+
+    private func applyDebugLaunchDestinationIfRequested() {
+#if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-qaTrips") { selectedDestination = .trips }
+        if arguments.contains("-qaWorld") { selectedDestination = .world }
+        if arguments.contains("-qaMe") { selectedDestination = .me }
+        if arguments.contains("-qaTripForm") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { showingAddTrip = true }
+        }
+        if arguments.contains("-qaReveal") {
+            let countries = ["IS", "PE"].compactMap { CountryCatalog.byCode[$0] }
+                .map { NewCountryReveal(country: $0, coverPhotoData: nil) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                revealPayload = NewCountriesRevealPayload(countries: countries, totalCount: 8)
+            }
+        }
+        // -qaTripDetail / -qaCountryDetail はHomeView側で実際のプッシュ遷移として処理する。
+#endif
+    }
+
+    private var debugTripFormPreset: String? {
+#if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-qaTripForm") ? "FR" : nil
+#else
+        nil
+#endif
     }
 
     /// -seedDemo 起動引数付きのときだけデモデータを投入(開発用)
@@ -128,16 +234,25 @@ struct RootView: View {
             modelContext.record(for: code).status = status
         }
 
+        // 写真主導のUIを確認できるよう、訪問先ごとに色味の違う仮写真を生成して添付する。
+        var stubPhotoSeed = 0
+        func stubPhoto() -> Data? {
+            stubPhotoSeed += 1
+            return DemoPhotoFactory.travelPhoto(seed: stubPhotoSeed)
+        }
+
         func addTrip(_ title: String, note: String = "", stops: [(String, String, String?)]) {
             let trip = Trip(title: title, note: note, createdAt: .now)
             modelContext.insert(trip)
             for (index, stop) in stops.enumerated() {
                 let (code, startStr, endStr) = stop
+                // 複数枚写真のUIをデモで確認できるよう、2〜3枚の仮写真を持たせる。
                 let stopRecord = TripStop(
                     order: index,
                     countryCode: code,
                     startDate: formatter.date(from: startStr) ?? .now,
-                    endDate: endStr.flatMap { formatter.date(from: $0) }
+                    endDate: endStr.flatMap { formatter.date(from: $0) },
+                    photos: (0..<Int.random(in: 2...3)).compactMap { _ in stubPhoto() }
                 )
                 stopRecord.trip = trip
                 modelContext.insert(stopRecord)
@@ -148,6 +263,11 @@ struct RootView: View {
 
         let periodFormatter = DateFormatter()
         periodFormatter.dateFormat = "yyyy-MM-dd"
+        let profile = modelContext.primaryUserProfile()
+        if profile.homeHeroPhotoData == nil {
+            profile.homeHeroPhotoData = DemoPhotoFactory.homeHeroPhoto()
+            profile.onboardingCompletedAt = .now
+        }
         modelContext.insert(HomeCountryPeriod(countryCode: "KR", setAt: periodFormatter.date(from: "2015-04-01") ?? .now))
         modelContext.insert(HomeCountryPeriod(countryCode: "JP", setAt: periodFormatter.date(from: "2021-09-01") ?? .now))
         homeCountryCode = "JP"
@@ -165,5 +285,6 @@ struct RootView: View {
         setStatus("IS", .wantToGo)
         setStatus("PE", .wantToGo)
         setStatus("EG", .wantToGo)
+        try? modelContext.save()
     }
 }
