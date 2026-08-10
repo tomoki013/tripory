@@ -135,7 +135,7 @@ struct CountryCoverCard: View {
         .contentShape(RoundedRectangle(cornerRadius: 22))
         .overlay(alignment: .topLeading) {
             if showsNewBadge {
-                Text(verbatim: "NEW")
+                Text("新規")
                     .font(.caption2.weight(.black))
                     .tracking(1)
                     .foregroundStyle(.white)

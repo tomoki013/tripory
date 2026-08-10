@@ -50,7 +50,9 @@ struct HomeView: View {
                         bottomBlock
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 6)
+                    // 右下に浮かぶ追加ボタンと、その上に重なるバナー広告の分、CTAボタンが
+                    // 隠れないよう余白を確保する(広告は読み込み後に最大150ptまで伸びる)。
+                    .padding(.bottom, 230)
                     .frame(minHeight: proxy.size.height, alignment: .top)
                 }
                 .scrollIndicators(.hidden)
@@ -83,7 +85,7 @@ struct HomeView: View {
             if let profile, profile.homeHeroPhotoData != nil {
                 HomeHeroCropView(profile: profile)
             } else {
-                PhotoPlaceholderView(symbol: "globe.asia.australia.fill", title: "My World")
+                PhotoPlaceholderView(symbol: "globe.asia.australia.fill", title: "マイワールド")
             }
 
             LinearGradient(
@@ -115,7 +117,7 @@ struct HomeView: View {
     private var identityBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 6) {
-                Text(verbatim: "My World")
+                Text("マイワールド")
                     .font(TriporyTypography.brandLargeTitle(54))
                 BrandSparkle(size: 14)
                     .padding(.top, 6)
@@ -130,7 +132,7 @@ struct HomeView: View {
                 .font(TriporyTypography.brandNumber(76))
                 .foregroundStyle(Color.triporyCoral)
                 .padding(.top, 26)
-            Text(verbatim: visitedCount == 1 ? "COUNTRY" : "COUNTRIES")
+            Text("か国")
                 .font(.caption.weight(.bold))
                 .tracking(2.4)
                 .foregroundStyle(Color.triporyGold)

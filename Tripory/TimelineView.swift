@@ -58,8 +58,9 @@ struct TripTimelineView: View {
                         .padding(.horizontal, 20)
                     }
                 }
-                // 右下に浮かぶ追加ボタンの分、最後のカードが隠れないよう余白を確保する。
-                .padding(.bottom, 90)
+                // 右下に浮かぶ追加ボタンと、その上に重なるバナー広告の分、最後のカードが
+                // 隠れないよう余白を確保する(広告は読み込み後に最大150ptまで伸びる)。
+                .padding(.bottom, 230)
             }
             .scrollIndicators(.hidden)
             .background(Color.triporyCanvas)

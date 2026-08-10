@@ -42,13 +42,13 @@ struct OnboardingReadyStep: View {
                 OnboardingProgress(step: .ready)
                     .padding(.top, 62)
 
-                Text(verbatim: "My World")
+                Text("マイワールド")
                     .font(.system(size: 42, design: .serif))
                     .padding(.top, 26)
                 HStack(alignment: .firstTextBaseline, spacing: 9) {
                     Text("\(countryCount)")
                         .font(.system(size: 52, design: .serif).monospacedDigit())
-                    Text(verbatim: countryCount == 1 ? "COUNTRY" : "COUNTRIES")
+                    Text("か国")
                         .font(.caption.weight(.bold))
                         .tracking(1.6)
                 }

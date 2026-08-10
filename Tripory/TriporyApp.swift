@@ -179,7 +179,7 @@ struct RootView: View {
                             .padding(.trailing, 18)
                         }
                         if selectedDestination != .me {
-                            RootBannerAd()
+                            RootBannerAd(width: geometry.size.width)
                         }
                     }
                     // システムタブバー(約49pt)とその上の視覚的余白を確保する。

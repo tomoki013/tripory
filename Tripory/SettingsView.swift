@@ -122,13 +122,13 @@ struct SettingsView: View {
             if let profile {
                 HomeHeroCropView(profile: profile)
             } else {
-                PhotoPlaceholderView(symbol: "photo", title: "My World")
+                PhotoPlaceholderView(symbol: "photo", title: "マイワールド")
             }
             LinearGradient(colors: [.clear, Color.triporyPhotoOverlay.opacity(0.94)], startPoint: .center, endPoint: .bottom)
 
             VStack(alignment: .leading, spacing: 7) {
                 HStack(spacing: 6) {
-                    Text(verbatim: "MY WORLD")
+                    Text("マイワールド")
                         .font(.caption.weight(.black))
                         .tracking(3)
                         .foregroundStyle(Color.triporyCoral)
@@ -138,7 +138,7 @@ struct SettingsView: View {
                     Text("\(visitedCount)")
                         .font(TriporyTypography.brandNumber(42))
                         .foregroundStyle(Color.triporyCoral)
-                    Text(verbatim: "COUNTRIES")
+                    Text("か国")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(Color.triporyGold)
                 }

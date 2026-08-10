@@ -50,7 +50,7 @@ struct NewCountriesRevealView: View {
                 Spacer()
 
                 VStack(spacing: 20) {
-                    Text(verbatim: "NEW COUNTRY")
+                    Text("新しい国")
                         .font(.subheadline.weight(.black))
                         .tracking(4)
                         .foregroundStyle(Color.triporyGold)

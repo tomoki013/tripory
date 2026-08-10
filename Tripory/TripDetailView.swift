@@ -183,7 +183,7 @@ struct TripDetailView: View {
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(.white)
                                     .lineLimit(1)
-                                Text(verbatim: isNew(stop) ? "NEW" : "REVISIT")
+                                Text(isNew(stop) ? "新規" : "再訪")
                                     .font(.caption2.weight(.black))
                                     .tracking(0.8)
                                     .foregroundStyle(isNew(stop) ? Color.triporyCoral : Color.triporyGold)
@@ -265,7 +265,7 @@ struct TripDetailView: View {
                                         .foregroundStyle(.white.opacity(0.55))
                                 }
                                 Spacer()
-                                Text(verbatim: isNew(stop) ? "NEW" : "REVISIT")
+                                Text(isNew(stop) ? "新規" : "再訪")
                                     .font(.caption2.weight(.black))
                                     .foregroundStyle(isNew(stop) ? Color.triporyCoral : Color.triporyGold)
                                 Image(systemName: "chevron.right")

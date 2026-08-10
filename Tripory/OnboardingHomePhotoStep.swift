@@ -151,12 +151,12 @@ struct OnboardingHomePhotoStep: View {
                 endPoint: .bottom
             )
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: "My World")
+                Text("マイワールド")
                     .font(.system(size: 24, weight: .semibold, design: .serif))
                 Text(verbatim: "6")
                     .font(.system(size: 32, design: .serif))
                     .padding(.top, 4)
-                Text(verbatim: "COUNTRIES")
+                Text("か国")
                     .font(.system(size: 9, weight: .bold))
                     .tracking(1.6)
                     .opacity(0.85)

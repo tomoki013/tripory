@@ -3,10 +3,23 @@ import SwiftUI
 import UIKit
 
 struct RootBannerAd: View {
+    let width: CGFloat
+
     @Environment(PurchaseManager.self) private var purchases
     @Environment(ConsentManager.self) private var consent
     @Environment(AdsService.self) private var ads
     @State private var loaded = false
+
+    // 広告枠のSwiftUI上のframeと実際の広告ビューの高さが食い違うと、広告が枠から
+    // はみ出して直下・直上のボタン(+ボタンやタブバー)のタップを奪ってしまう。
+    // 必ずこのadSize.size.heightを唯一の高さの基準として使う(固定値を使わない)。
+    private var adSize: AdSize { largeAnchoredAdaptiveBanner(width: max(width, 0)) }
+
+    // GADBannerViewはSwiftUI側のframeと無関係に自分自身のサイズで再レイアウトすることがあり、
+    // それが原因で広告がこの枠からはみ出し、直下・直上のボタンのタップを奪ってしまう不具合が
+    // 確認された。アンカー型アダプティブバナーは仕様上どれだけ大きくても150pt程度に収まるため、
+    // 外側を必ずこの上限でclipし、内部の実際のサイズに関係なくヒットテスト領域も確実に制限する。
+    private let maxHeight: CGFloat = 150
 
     @ViewBuilder
     var body: some View {
@@ -17,17 +30,15 @@ struct RootBannerAd: View {
                 .accessibilityLabel("広告")
                 .accessibilityIdentifier("bannerAdContainer")
         } else if !isUITestAdsRemoved {
-            GeometryReader { proxy in
-                let width = max(proxy.size.width, 0)
+            Group {
                 if shouldShow, width > 0 {
-                    let size = largeAnchoredAdaptiveBanner(width: width)
                     BannerRepresentable(
                         unitID: AdsConfiguration.current.bannerAdUnitID,
-                        size: size,
+                        size: adSize,
                         onLoaded: { loaded = true },
                         onFailed: { loaded = false }
                     )
-                    .frame(width: size.size.width, height: loaded ? size.size.height : 0)
+                    .frame(width: adSize.size.width, height: loaded ? adSize.size.height : 0)
                     .frame(maxWidth: .infinity)
                     .accessibilityLabel("広告")
                     .accessibilityIdentifier("bannerAdContainer")
@@ -35,7 +46,7 @@ struct RootBannerAd: View {
             }
             // 未ロード中も1ptだけ維持してUIViewを生存させる。広告枠としては
             // 見えず、ロード成功時だけ実サイズへ展開される。
-            .frame(height: shouldShow ? (loaded ? 64 : 1) : 0)
+            .frame(height: shouldShow ? (loaded ? min(adSize.size.height, maxHeight) : 1) : 0)
             .clipped()
             .animation(.easeOut(duration: 0.15), value: loaded)
         }
@@ -76,6 +87,7 @@ private struct BannerRepresentable: UIViewRepresentable {
         let view = BannerView(adSize: size)
         view.adUnitID = unitID
         view.delegate = context.coordinator
+        view.clipsToBounds = true
         context.coordinator.scheduleLoad(view, size: size)
         return view
     }
