@@ -71,6 +71,13 @@ struct AppRootContainer: View {
             }
         }
         .preferredColorScheme(appearanceMode.colorScheme)
+        // LaunchAnimationView.onFinished()が何らかの理由で呼ばれなかった場合に備えて、
+        // 一定時間後に強制的にビューツリーから取り除く(タブバー・追加ボタンが
+        // ずっと反応しなくなる不具合の再発防止)。
+        .task {
+            try? await Task.sleep(for: .seconds(3))
+            if showLaunchAnimation { showLaunchAnimation = false }
+        }
         .task {
             let profile = modelContext.primaryUserProfile()
             guard onboardingMode == nil else { return }

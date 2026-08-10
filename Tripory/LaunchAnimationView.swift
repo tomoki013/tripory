@@ -44,6 +44,11 @@ struct LaunchAnimationView: View {
             }
         }
         .opacity(viewOpacity)
+        // onFinished()の呼び出しが何らかの理由(バックグラウンド遷移などで
+        // DispatchQueue.main.asyncAfterの発火が遅延・スキップされる等)で
+        // 届かなかった場合の保険。透明になった時点で、以後は自分自身が
+        // タブバーや追加ボタンへのタップを奪わないようにする。
+        .allowsHitTesting(viewOpacity > 0)
         .onAppear { start() }
     }
 
