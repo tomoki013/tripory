@@ -4,10 +4,19 @@ import MapKit
 
 @main
 struct TriporyApp: App {
+    @State private var purchases = PurchaseManager()
+    @State private var consent = ConsentManager()
+    @State private var ads = AdsService()
+    @State private var tripFlow = TripFlowCoordinator()
+
     var body: some Scene {
         WindowGroup {
             AppRootContainer()
                 .tint(.triporyCoral)
+                .environment(purchases)
+                .environment(consent)
+                .environment(ads)
+                .environment(tripFlow)
         }
         .modelContainer(for: [
             CountryRecord.self,
@@ -23,9 +32,18 @@ struct AppRootContainer: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var profiles: [UserProfile]
     @State private var showLaunchAnimation = true
-    @State private var forceHideOnboarding = false
+    // オンボーディングを表示するかどうかは起動時に一度だけ決める(computed varにしない)。
+    // 以前はhomeCountryCode/profile.homeHeroPhotoDataから毎回計算していたが、
+    // オンボーディング中にプロフィールを更新すること自体(例: 写真を選んだ瞬間)が
+    // 「オンボーディング不要」の条件を満たしてしまい、「この写真にする」を押す前に
+    // オンボーディングごと閉じてアプリ本体が見えてしまう不具合があった。
+    @State private var onboardingMode: OnboardingFlowMode?
+    @State private var didResolveOnboarding = false
     @AppStorage("appearanceMode") private var appearanceModeRaw = AppearanceMode.system.rawValue
     @AppStorage("homeCountryCode") private var homeCountryCode = ""
+    @Environment(PurchaseManager.self) private var purchases
+    @Environment(ConsentManager.self) private var consent
+    @Environment(AdsService.self) private var ads
 
     private var appearanceMode: AppearanceMode {
         AppearanceMode(rawValue: appearanceModeRaw) ?? .system
@@ -35,25 +53,13 @@ struct AppRootContainer: View {
         profiles.first(where: { $0.id == "primary" }) ?? profiles.first
     }
 
-    private var onboardingMode: OnboardingFlowMode? {
-        guard !forceHideOnboarding else { return nil }
-#if DEBUG
-        // デザイン確認用: 完了済みプロフィールでもオンボーディングを強制表示する。
-        if ProcessInfo.processInfo.arguments.contains("-qaOnboarding") { return .complete }
-#endif
-        if homeCountryCode.isEmpty { return .complete }
-        if profile?.homeHeroPhotoData == nil { return .photoOnly }
-        return nil
-    }
-
     var body: some View {
         ZStack {
             RootView()
 
             if let profile, let onboardingMode {
                 OnboardingFlowView(mode: onboardingMode, profile: profile) {
-                    // SwiftDataのクエリ更新を待たず、即座にゲートを閉じる。
-                    forceHideOnboarding = true
+                    self.onboardingMode = nil
                 }
                 .zIndex(2)
                 .allowsHitTesting(!showLaunchAnimation)
@@ -66,7 +72,58 @@ struct AppRootContainer: View {
         }
         .preferredColorScheme(appearanceMode.colorScheme)
         .task {
-            _ = modelContext.primaryUserProfile()
+            let profile = modelContext.primaryUserProfile()
+            guard onboardingMode == nil else { return }
+#if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-uiTesting") {
+                homeCountryCode = "JP"
+                didResolveOnboarding = true
+                return
+            }
+            // デザイン確認用: 完了済みプロフィールでもオンボーディングを強制表示する。
+            if ProcessInfo.processInfo.arguments.contains("-qaOnboarding") {
+                onboardingMode = .complete
+                didResolveOnboarding = true
+                return
+            }
+#endif
+            if homeCountryCode.isEmpty {
+                onboardingMode = .complete
+            } else if profile.homeHeroPhotoData == nil {
+                onboardingMode = .photoOnly
+            }
+            didResolveOnboarding = true
+        }
+        .task(id: didResolveOnboarding && onboardingMode == nil && purchases.entitlementCheckCompleted) {
+            guard didResolveOnboarding, onboardingMode == nil, purchases.entitlementCheckCompleted else { return }
+#if DEBUG
+            guard !ProcessInfo.processInfo.arguments.contains("-uiTesting") else { return }
+#endif
+            await consent.prepareIfEligible(
+                entitlementCheckCompleted: purchases.entitlementCheckCompleted,
+                hasRemovedAds: purchases.hasRemovedAds
+            )
+            await ads.loadInterstitialIfEligible(
+                canRequestAds: consent.canRequestAds && consent.mobileAdsInitialized,
+                hasRemovedAds: purchases.hasRemovedAds
+            )
+        }
+        .onChange(of: purchases.hasRemovedAds) { _, removed in
+            if removed {
+                ads.disableAds()
+            } else {
+                ads.enableAds()
+                Task {
+                    await consent.prepareIfEligible(
+                        entitlementCheckCompleted: purchases.entitlementCheckCompleted,
+                        hasRemovedAds: false
+                    )
+                    await ads.loadInterstitialIfEligible(
+                        canRequestAds: consent.canRequestAds && consent.mobileAdsInitialized,
+                        hasRemovedAds: false
+                    )
+                }
+            }
         }
     }
 }
@@ -75,71 +132,87 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var profiles: [UserProfile]
     @State private var selectedDestination: RootDestination = .home
-    @State private var showingAddTrip = false
-    @State private var revealPayload: NewCountriesRevealPayload?
     @AppStorage("homeCountryCode") private var homeCountryCode = ""
+    @Environment(TripFlowCoordinator.self) private var tripFlow
+    @Environment(PurchaseManager.self) private var purchases
+    @Environment(ConsentManager.self) private var consent
+    @Environment(AdsService.self) private var ads
+    @State private var keyboardVisible = false
 
     private var homePhotoData: Data? { profiles.first?.homeHeroPhotoData }
 
-    /// 「+」タップ時にselectedDestinationへ実際に書き込んでしまうと、TabView自身が
-    /// 「+」への選択遷移(ハイライトのアニメーション)を一度実行してから、こちらが戻す
-    /// 処理をしても間に合わず、一瞬フォーカスが動いて見える。
-    /// カスタムBindingのsetterでその場で横取りし、selectedDestinationには一切
-    /// 書き込まない(getterも常に実際の値を返す)ことで、TabView側からは
-    /// 「+」が選択された事実そのものが観測されないようにする。
-    private var tabSelection: Binding<RootDestination> {
-        Binding(
-            get: { selectedDestination },
-            set: { newValue in
-                if newValue == .add {
-                    showingAddTrip = true
-                } else {
-                    selectedDestination = newValue
+    var body: some View {
+        GeometryReader { geometry in
+            TabView(selection: $selectedDestination) {
+                tab(.home) {
+                    HomeView(
+                        onShowTrips: { select(.trips) },
+                        onShowWorld: { select(.world) },
+                        onCreateTrip: { tripFlow.presentNewTrip() }
+                    )
+                }
+                tab(.trips) { TripTimelineView() }
+                tab(.world) { WorldView() }
+                tab(.me) { SettingsView(isRoot: true) }
+            }
+            // タブ切り替えの一瞬、各画面の背景がまだ安全領域まで届いていないコマが
+            // 挟まると、ウィンドウの素の背景(黒)がちらつく。TabView自体に控えめな
+            // 地色を敷いておき、そのちらつきが黒でなくこの色になるようにする。
+            .background(Color.triporyCanvas)
+            .overlay(alignment: .bottom) {
+                if !keyboardVisible && !consent.isPresentingForm && !ads.isPresentingInterstitial {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Spacer()
+                            Button {
+                                tripFlow.presentNewTrip()
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.title2.weight(.semibold))
+                                    .frame(width: 56, height: 56)
+                                    .foregroundStyle(.white)
+                                    .background(Color.triporyCoral, in: Circle())
+                                    .shadow(color: Color.triporyNavy.opacity(0.25), radius: 10, y: 4)
+                            }
+                            .accessibilityLabel("旅を記録する")
+                            .accessibilityIdentifier("rootAddTripButton")
+                            .padding(.trailing, 18)
+                        }
+                        if selectedDestination != .me {
+                            RootBannerAd()
+                        }
+                    }
+                    // システムタブバー(約49pt)とその上の視覚的余白を確保する。
+                    // セーフエリアは端末・横画面ごとの実測値を使用する。
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + 61)
                 }
             }
-        )
-    }
-
-    var body: some View {
-        TabView(selection: tabSelection) {
-            tab(.home) {
-                HomeView(
-                    onShowTrips: { select(.trips) },
-                    onShowWorld: { select(.world) },
-                    onCreateTrip: { showingAddTrip = true }
-                )
-            }
-            tab(.trips) { TripTimelineView() }
-            // 「+」はコンテンツを持たない特殊タブ。見た目だけタブバーの他の項目と
-            // 並ぶ普通のアイコンにしつつ、色だけコーラルにして区別する。
-            // タブバーは通常、選択状態に応じてアイコンをテンプレート塗り替えしてしまう
-            // (常に非選択扱いのこのタブは無彩色になる)ため、.paletteレンダリングモードで
-            // 明示的に色を固定し、選択状態に関係なく常にコーラルで出るようにする。
-            Tab(value: RootDestination.add, content: { Color.clear }) {
-                Image(systemName: RootDestination.add.symbol)
-                    .font(.system(size: 22, weight: .semibold))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(Color.triporyCoral)
-            }
-            tab(.world) { WorldView() }
-            tab(.me) { SettingsView(isRoot: true) }
         }
-        // タブ切り替えの一瞬、各画面の背景がまだ安全領域まで届いていないコマが
-        // 挟まると、ウィンドウの素の背景(黒)がちらつく。TabView自体に控えめな
-        // 地色を敷いておき、そのちらつきが黒でなくこの色になるようにする。
-        .background(Color.triporyCanvas)
-        .sheet(isPresented: $showingAddTrip) {
-            TripFormView(presetCountryCode: debugTripFormPreset) { newCountries, totalCount in
-                guard !newCountries.isEmpty else { return }
-                revealPayload = NewCountriesRevealPayload(countries: newCountries, totalCount: totalCount)
-            }
+        .sheet(item: Binding(get: { tripFlow.addRequest }, set: { tripFlow.addRequest = $0 })) { request in
+            TripFormView(presetCountryCode: request.presetCountryCode ?? debugTripFormPreset)
         }
-        .fullScreenCover(item: $revealPayload) { payload in
+        .fullScreenCover(item: Binding(get: { tripFlow.revealPayload }, set: { tripFlow.revealPayload = $0 })) { payload in
             NewCountriesRevealView(payload: payload, homePhotoData: homePhotoData) {
-                revealPayload = nil
+                let result = tripFlow.completeReveal()
                 select(.world)
+                if let result {
+                    ads.presentIfEligible(
+                        eventID: result.eventID,
+                        newlyVisitedCountryCodes: result.newlyVisitedCountryCodes,
+                        canRequestAds: consent.canRequestAds && consent.mobileAdsInitialized,
+                        hasRemovedAds: purchases.hasRemovedAds
+                    )
+                    Task {
+                        await ads.loadInterstitialIfEligible(
+                            canRequestAds: consent.canRequestAds && consent.mobileAdsInitialized,
+                            hasRemovedAds: purchases.hasRemovedAds
+                        )
+                    }
+                }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardVisible = true }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardVisible = false }
         .task {
             migrateLegacyHomeCountryIfNeeded()
             seedDemoDataIfRequested()
@@ -200,13 +273,13 @@ struct RootView: View {
         if arguments.contains("-qaWorld") { selectedDestination = .world }
         if arguments.contains("-qaMe") { selectedDestination = .me }
         if arguments.contains("-qaTripForm") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { showingAddTrip = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { tripFlow.presentNewTrip(presetCountryCode: "FR") }
         }
         if arguments.contains("-qaReveal") {
             let countries = ["IS", "PE"].compactMap { CountryCatalog.byCode[$0] }
                 .map { NewCountryReveal(country: $0, coverPhotoData: nil) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                revealPayload = NewCountriesRevealPayload(countries: countries, totalCount: 8)
+                tripFlow.revealPayload = NewCountriesRevealPayload(countries: countries, totalCount: 8)
             }
         }
         // -qaTripDetail / -qaCountryDetail はHomeView側で実際のプッシュ遷移として処理する。

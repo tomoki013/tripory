@@ -40,7 +40,7 @@ struct NewCountriesRevealView: View {
                     HStack(spacing: 8) {
                         ForEach(payload.countries.indices, id: \.self) { step in
                             Capsule()
-                                .fill(step <= index ? Color.triporyCoral : .white.opacity(0.22))
+                                .fill(step <= index ? Color.triporyCoral : Color.triporyIvory.opacity(0.2))
                                 .frame(height: 5)
                         }
                     }
@@ -55,11 +55,16 @@ struct NewCountriesRevealView: View {
                         .tracking(4)
                         .foregroundStyle(Color.triporyGold)
 
-                    Text(country.flag)
-                        .font(.system(size: 92))
-                        .shadow(color: .black.opacity(0.25), radius: 18, y: 10)
-                        .scaleEffect(isVisible ? 1 : 0.7)
-                        .opacity(isVisible ? 1 : 0)
+                    ZStack {
+                        // 国旗の背後に、Goldの軌道リングを1本だけごく薄く重ねる。
+                        TriporyOrbitMark(size: 150, showsGlow: false, orbitProgress: 1)
+                            .opacity(0.22)
+                        Text(country.flag)
+                            .font(.system(size: 92))
+                            .shadow(color: .black.opacity(0.25), radius: 18, y: 10)
+                    }
+                    .scaleEffect(isVisible ? 1 : 0.7)
+                    .opacity(isVisible ? 1 : 0)
 
                     VStack(spacing: 12) {
                         Text(country.name)

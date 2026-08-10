@@ -19,14 +19,19 @@ enum CountryRelationship: Int, CaseIterable, Hashable {
         }
     }
 
+    // Midnight Atlas: Goldは「住んだ国」専用の特別な色として予約し、訪問回数の
+    // 段階はCoralファミリー内の別RGBで表現する(GoldとCoralの役割を混同しないため)。
+    // 以前はopacityだけで段階を分けていたが、地球儀の描画(MKPolygonRenderer)が
+    // fillColorのalphaを一律で上書きするため、1回・2回・3回以上がすべて同じ色に
+    // 潰れてしまっていた。RGB自体を変えることでどの画面でも区別できるようにする。
     var color: Color {
         switch self {
         case .unvisited: return Color.gray.opacity(0.24)
-        case .wishlist: return .triporyBlue
-        case .oneVisit: return .triporyGold
-        case .twoVisits: return .triporyRust
-        case .frequent: return .triporyCoral
-        case .lived: return .triporySage
+        case .wishlist: return .triporyHorizonBlue
+        case .oneVisit: return .triporyCoralLight
+        case .twoVisits: return .triporyCoral
+        case .frequent: return .triporyRust
+        case .lived: return .triporyGold
         }
     }
 }

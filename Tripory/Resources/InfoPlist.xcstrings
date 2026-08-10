@@ -1,0 +1,40 @@
+{
+  "sourceLanguage" : "ja",
+  "strings" : {
+    "NSUserTrackingUsageDescription" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "قد تستخدم النسخة المجانية معرّف الإعلانات، عند السماح، لعرض إعلانات أكثر ملاءمة." } },
+        "cs" : { "stringUnit" : { "state" : "translated", "value" : "Bezplatná verze může po udělení souhlasu použít reklamní identifikátor k zobrazování relevantnějších reklam." } },
+        "da" : { "stringUnit" : { "state" : "translated", "value" : "Gratisversionen kan med din tilladelse bruge annonce-id'et til at vise mere relevante annoncer." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die kostenlose Version kann mit deiner Erlaubnis die Werbe-ID verwenden, um relevantere Werbung anzuzeigen." } },
+        "el" : { "stringUnit" : { "state" : "translated", "value" : "Η δωρεάν έκδοση μπορεί, με την άδειά σας, να χρησιμοποιεί το αναγνωριστικό διαφήμισης για πιο συναφείς διαφημίσεις." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The free version may use the advertising identifier, with your permission, to show more relevant ads." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Con tu permiso, la versión gratuita puede usar el identificador de publicidad para mostrar anuncios más relevantes." } },
+        "fi" : { "stringUnit" : { "state" : "translated", "value" : "Ilmaisversio voi luvallasi käyttää mainostunnistetta osuvampien mainosten näyttämiseen." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Avec votre autorisation, la version gratuite peut utiliser l’identifiant publicitaire pour afficher des annonces plus pertinentes." } },
+        "he" : { "stringUnit" : { "state" : "translated", "value" : "הגרסה החינמית עשויה, באישורך, להשתמש במזהה הפרסום כדי להציג מודעות רלוונטיות יותר." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपकी अनुमति से मुफ़्त संस्करण अधिक प्रासंगिक विज्ञापन दिखाने के लिए विज्ञापन पहचानकर्ता का उपयोग कर सकता है।" } },
+        "hu" : { "stringUnit" : { "state" : "translated", "value" : "Az ingyenes verzió az engedélyeddel használhatja a hirdetési azonosítót relevánsabb hirdetések megjelenítéséhez." } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Dengan izin Anda, versi gratis dapat menggunakan pengenal iklan untuk menampilkan iklan yang lebih relevan." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Con la tua autorizzazione, la versione gratuita può usare l’identificatore pubblicitario per mostrare annunci più pertinenti." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "無料版の広告をより適切に表示するため、許可された場合に限り広告識別子を使用します。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "무료 버전은 허용한 경우 더 관련성 높은 광고를 표시하기 위해 광고 식별자를 사용할 수 있습니다." } },
+        "ms" : { "stringUnit" : { "state" : "translated", "value" : "Dengan kebenaran anda, versi percuma mungkin menggunakan pengecam pengiklanan untuk memaparkan iklan yang lebih berkaitan." } },
+        "nb" : { "stringUnit" : { "state" : "translated", "value" : "Gratisversjonen kan med din tillatelse bruke annonse-ID-en til å vise mer relevante annonser." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Met je toestemming kan de gratis versie de advertentie-ID gebruiken om relevantere advertenties te tonen." } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Za Twoją zgodą bezpłatna wersja może używać identyfikatora reklamowego do wyświetlania trafniejszych reklam." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Com sua permissão, a versão gratuita pode usar o identificador de publicidade para exibir anúncios mais relevantes." } },
+        "ro" : { "stringUnit" : { "state" : "translated", "value" : "Cu permisiunea ta, versiunea gratuită poate folosi identificatorul publicitar pentru a afișa reclame mai relevante." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "С вашего разрешения бесплатная версия может использовать рекламный идентификатор для показа более релевантной рекламы." } },
+        "sv" : { "stringUnit" : { "state" : "translated", "value" : "Gratisversionen kan med ditt tillstånd använda annonsidentifieraren för att visa mer relevanta annonser." } },
+        "th" : { "stringUnit" : { "state" : "translated", "value" : "เวอร์ชันฟรีอาจใช้ตัวระบุโฆษณาเมื่อคุณอนุญาต เพื่อแสดงโฆษณาที่เกี่ยวข้องมากขึ้น" } },
+        "tr" : { "stringUnit" : { "state" : "translated", "value" : "Ücretsiz sürüm, izninizle daha alakalı reklamlar göstermek için reklam tanımlayıcısını kullanabilir." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "З вашого дозволу безкоштовна версія може використовувати рекламний ідентифікатор для показу доречнішої реклами." } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Với sự cho phép của bạn, phiên bản miễn phí có thể dùng mã nhận dạng quảng cáo để hiển thị quảng cáo phù hợp hơn." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "经你许可，免费版可能会使用广告标识符来展示更相关的广告。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "經你允許，免費版可能會使用廣告識別碼來顯示更相關的廣告。" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

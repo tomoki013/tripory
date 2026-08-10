@@ -12,17 +12,21 @@ struct OnboardingWelcomeStep: View {
             backgroundLayer
 
             VStack(spacing: 0) {
-                OnboardingProgress(step: .welcome)
-                    .padding(.top, 62)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack {
+                    OnboardingProgress(step: .welcome)
+                    Spacer()
+                    TriporyWordmark(font: .caption2.weight(.bold), tracking: 3, color: .triporyGold)
+                }
+                .padding(.top, 62)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer()
 
                 VStack(spacing: 16) {
-                    Text(verbatim: "Collect your world.")
-                        .font(.system(.largeTitle, design: .serif, weight: .semibold))
+                    Text("Your world, beautifully mapped.")
+                        .font(TriporyTypography.brandTitle(34))
                         .foregroundStyle(.white)
-                    Text("旅を記録するたび、\n行った国と思い出が\nあなたの世界になる。")
+                    Text("旅を記録するたび、\n訪れた国と思い出が、\nあなたの世界になっていく。")
                         .font(.title3)
                         .foregroundStyle(.white.opacity(0.82))
                         .lineSpacing(6)
@@ -32,7 +36,7 @@ struct OnboardingWelcomeStep: View {
 
                 Spacer()
 
-                PrimaryCapsuleButton(title: "はじめる", action: onContinue)
+                PrimaryCapsuleButton(title: "はじめる", style: .ivory, action: onContinue)
                     .padding(.bottom, 34)
                     .opacity(isVisible ? 1 : 0)
             }

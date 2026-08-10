@@ -242,29 +242,6 @@ struct WorldView: View {
             )
             .ignoresSafeArea()
             .accessibilityLabel(isFlat ? "全世界地図" : "インタラクティブな3D地球")
-            .overlay {
-                // 地球儀だけ、宇宙から見ているような温かみのある色合いを重ねる。
-                // 平面の全世界地図は実用的な地図として見せたいので、演出は足さない。
-                // 以前は.saturation/.contrast/.hueRotationで地図全体をCore Imageフィルタ
-                // 処理していたが、これはMKMapViewの描画を毎フレームオフスクリーンで合成し
-                // 直すことになり、パン・回転時に体感できるほど重くなっていた。色フィルタは
-                // 使わず、半透明グラデーションを重ねるだけ(GPU的にほぼ無料)にする。
-                if !isFlat {
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color(red: 0.55, green: 0.72, blue: 0.95).opacity(0.22), location: 0),
-                            .init(color: .clear, location: 0.38),
-                            .init(color: .clear, location: 0.55),
-                            .init(color: Color(red: 0.98, green: 0.6, blue: 0.28).opacity(0.4), location: 1),
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .blendMode(.overlay)
-                    .allowsHitTesting(false)
-                    .ignoresSafeArea()
-                }
-            }
 
             if !isFlat {
                 GeometryReader { proxy in
@@ -292,17 +269,17 @@ struct WorldView: View {
                         .position(x: globeCenter.x - globeRadius * 0.42, y: globeCenter.y - globeRadius * 0.86)
                         .blendMode(.screen)
 
-                        // 大気の縁の光(リムライト)。球の輪郭に沿って淡い青のハローを重ね、
+                        // 大気の縁の光(リムライト)。球の輪郭に沿ってHorizon Blueのハローを重ね、
                         // 「宇宙に浮かぶ地球」の発光感を近似する。
                         Circle()
                             .strokeBorder(
                                 AngularGradient(
                                     colors: [
-                                        Color(red: 0.55, green: 0.8, blue: 1).opacity(0.85),
-                                        Color(red: 0.55, green: 0.8, blue: 1).opacity(0.15),
-                                        Color(red: 0.55, green: 0.8, blue: 1).opacity(0.05),
-                                        Color(red: 0.55, green: 0.8, blue: 1).opacity(0.55),
-                                        Color(red: 0.55, green: 0.8, blue: 1).opacity(0.85),
+                                        Color.triporyHorizonBlue.opacity(0.85),
+                                        Color.triporyHorizonBlue.opacity(0.15),
+                                        Color.triporyHorizonBlue.opacity(0.05),
+                                        Color.triporyHorizonBlue.opacity(0.55),
+                                        Color.triporyHorizonBlue.opacity(0.85),
                                     ],
                                     center: .center
                                 ),
@@ -394,11 +371,12 @@ struct WorldView: View {
                 .frame(width: 38, height: 38)
                 .foregroundStyle(
                     isActive
-                        ? (dark ? Color.triporyNavy : Color.white)
+                        ? Color.triporyMidnight
                         : (dark ? .white.opacity(0.85) : Color.triporyInk.opacity(0.55))
                 )
                 .background(
-                    isActive ? (dark ? Color.white : Color.triporyCoral) : .clear,
+                    // Midnight Atlas: モード切り替えの選択状態はGold(ブランド色)で統一する。
+                    isActive ? Color.triporyGold : .clear,
                     in: Circle()
                 )
         }

@@ -37,7 +37,7 @@ struct TripCoverCard: View {
             }
             .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 150)
 
-            LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
+            LinearGradient(colors: [.clear, Color.triporyPhotoOverlay.opacity(0.8)], startPoint: .center, endPoint: .bottom)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(trip.title.isEmpty ? trip.routeDescription : trip.title)
@@ -107,7 +107,7 @@ struct CountryCoverCard: View {
             }
             .frame(maxWidth: .infinity, minHeight: 172, maxHeight: 172)
 
-            LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .center, endPoint: .bottom)
+            LinearGradient(colors: [.clear, Color.triporyPhotoOverlay.opacity(0.8)], startPoint: .center, endPoint: .bottom)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(summary.country.name) \(summary.country.flag)")

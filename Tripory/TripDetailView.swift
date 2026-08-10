@@ -97,7 +97,7 @@ struct TripDetailView: View {
                 )
             )
             .overlay(alignment: .top) {
-                LinearGradient(colors: [.black.opacity(0.35), .clear], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [Color.triporyPhotoOverlay.opacity(0.35), .clear], startPoint: .top, endPoint: .bottom)
                     .frame(height: 130)
                     .allowsHitTesting(false)
             }
@@ -293,9 +293,15 @@ struct TripDetailView: View {
 
     private func deleteTrip() {
         let codes = Set(trip.stops.map(\.countryCode))
-        modelContext.delete(trip)
-        modelContext.revertStatusIfOrphaned(codes: codes, homeCountryCode: homeCountryCode)
+        // 先にdismiss()でポップ遷移を始めてから削除する。逆順にすると、
+        // cascade deleteでallStops(@Query)が更新され、ポップアニメーション完了前に
+        // このビューのbodyが再評価され、既に無効化されたtripのプロパティ
+        // (trip.title, trip.sortedStopsなど)へアクセスしてクラッシュすることがあった。
         dismiss()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            modelContext.delete(trip)
+            modelContext.revertStatusIfOrphaned(codes: codes, homeCountryCode: homeCountryCode)
+        }
     }
 
     private func dateRangeText(start: Date, end: Date?) -> String {

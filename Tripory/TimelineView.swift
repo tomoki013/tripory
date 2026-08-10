@@ -6,9 +6,9 @@ struct TripTimelineView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("homeCountryCode") private var homeCountryCode = ""
     @Query(sort: \Trip.createdAt, order: .reverse) private var allTrips: [Trip]
-    @State private var showingAddTrip = false
     @State private var editingTrip: Trip?
     @State private var deletingTrip: Trip?
+    @Environment(TripFlowCoordinator.self) private var tripFlow
 
     private var trips: [Trip] {
         allTrips.filter { !$0.stops.isEmpty }.sorted {
@@ -36,7 +36,7 @@ struct TripTimelineView: View {
                             title: "旅の記録がありません",
                             message: "最初の旅を残すと、訪れた国と写真があなたの世界に加わります。",
                             actionTitle: "旅を記録する",
-                            action: { showingAddTrip = true }
+                            action: { tripFlow.presentNewTrip() }
                         )
                         .padding(.top, 70)
                     } else {
@@ -66,7 +66,6 @@ struct TripTimelineView: View {
             .hidesNavigationBar()
             .navigationDestination(for: Trip.self) { TripDetailView(trip: $0) }
             .navigationDestination(for: Country.self) { CountryDetailView(country: $0) }
-            .sheet(isPresented: $showingAddTrip) { TripFormView() }
             .sheet(item: $editingTrip) { trip in
                 TripFormView(editingTrip: trip)
             }
@@ -103,7 +102,7 @@ struct TripTimelineView: View {
                         .frame(width: 7, height: 7)
                 }
                 Rectangle()
-                    .fill(Color.triporyInk.opacity(isLast ? 0 : 0.14))
+                    .fill(isLast ? Color.clear : Color.triporyDivider)
                     .frame(width: 1.5)
                     .frame(maxHeight: .infinity)
             }

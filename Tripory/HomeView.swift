@@ -88,11 +88,11 @@ struct HomeView: View {
 
             LinearGradient(
                 stops: [
-                    .init(color: .black.opacity(0.52), location: 0),
-                    .init(color: .black.opacity(0.12), location: 0.34),
+                    .init(color: Color.triporyPhotoOverlay.opacity(0.5), location: 0),
+                    .init(color: Color.triporyPhotoOverlay.opacity(0.12), location: 0.34),
                     .init(color: .clear, location: 0.5),
-                    .init(color: .black.opacity(0.66), location: 0.86),
-                    .init(color: .black.opacity(0.82), location: 1),
+                    .init(color: Color.triporyPhotoOverlay.opacity(0.78), location: 0.86),
+                    .init(color: Color.triporyPhotoOverlay.opacity(0.88), location: 1),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -106,10 +106,7 @@ struct HomeView: View {
 
     private var topBar: some View {
         HStack {
-            Text(verbatim: "TRIPORY")
-                .font(.caption.weight(.bold))
-                .tracking(3)
-                .foregroundStyle(.white)
+            TriporyWordmark(font: .caption.weight(.bold), tracking: 3, color: .triporyGold)
             Spacer()
         }
         .padding(.top, 10)
@@ -117,31 +114,44 @@ struct HomeView: View {
 
     private var identityBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(verbatim: "My World")
-                .font(.system(size: 54, design: .serif))
-                .padding(.top, 22)
+            HStack(alignment: .top, spacing: 6) {
+                Text(verbatim: "My World")
+                    .font(TriporyTypography.brandLargeTitle(54))
+                BrandSparkle(size: 14)
+                    .padding(.top, 6)
+            }
+            .padding(.top, 22)
             Text("旅で集めた、わたしの世界")
                 .font(.subheadline.weight(.medium))
                 .opacity(0.88)
                 .padding(.top, 8)
 
             Text("\(visitedCount)")
-                .font(.system(size: 76, weight: .regular, design: .serif).monospacedDigit())
+                .font(TriporyTypography.brandNumber(76))
+                .foregroundStyle(Color.triporyCoral)
                 .padding(.top, 26)
             Text(verbatim: visitedCount == 1 ? "COUNTRY" : "COUNTRIES")
                 .font(.caption.weight(.bold))
                 .tracking(2.4)
-                .opacity(0.85)
+                .foregroundStyle(Color.triporyGold)
 
             // 素の.glassは背景の写真の明るさをそのまま拾うため、明るい写真だと文字が
             // 読みにくくなることがある。.glassProminentで暗色を敷き、写真の内容に
-            // 関わらず白文字が安定して読めるようにする。
-            Button("世界地図を見る", systemImage: "globe.asia.australia", action: onShowWorld)
-                .buttonStyle(.glassProminent)
-                .font(.subheadline.weight(.semibold))
-                .tint(.black.opacity(0.45))
-                .foregroundStyle(.white)
-                .padding(.top, 24)
+            // 関わらず白文字が安定して読めるようにする。アイコンだけGoldにして
+            // ブランド装飾、ラベルはSoft Ivoryのまま実用性を優先する。
+            Button(action: onShowWorld) {
+                Label {
+                    Text("世界地図を見る")
+                        .foregroundStyle(Color.triporyIvory)
+                } icon: {
+                    Image(systemName: "globe.asia.australia")
+                        .foregroundStyle(Color.triporyGold)
+                }
+            }
+            .buttonStyle(.glassProminent)
+            .font(.subheadline.weight(.semibold))
+            .tint(Color.triporyPhotoOverlay.opacity(0.45))
+            .padding(.top, 24)
         }
         .foregroundStyle(.white)
         .shadow(color: .black.opacity(0.3), radius: 10, y: 3)
@@ -165,9 +175,14 @@ struct HomeView: View {
 
     private func recentTripRow(_ trip: Trip) -> some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("最近の旅")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.72))
+            Label {
+                Text("最近の旅")
+            } icon: {
+                Image(systemName: "airplane.departure")
+                    .foregroundStyle(Color.triporyGold)
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.72))
 
             NavigationLink(value: trip) {
                 HStack(spacing: 13) {
@@ -219,9 +234,13 @@ struct HomeView: View {
     private var recentCountriesRail: some View {
         VStack(alignment: .leading, spacing: 11) {
             HStack {
-                Text("最近増えた国")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.72))
+                Label {
+                    Text("最近増えた国")
+                } icon: {
+                    BrandSparkle(size: 11)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.72))
                 Spacer()
                 Button(action: onShowWorld) {
                     Text("すべて見る")
@@ -250,6 +269,8 @@ struct HomeView: View {
 
     private var emptyTripCTA: some View {
         VStack(alignment: .leading, spacing: 12) {
+            TriporyOrbitMark(size: 40, showsGlow: false, orbitProgress: 0.72)
+                .padding(.bottom, 2)
             Text("ここから、あなたの世界が育っていきます。")
                 .font(.system(.title3, design: .serif, weight: .semibold))
                 .foregroundStyle(.white)

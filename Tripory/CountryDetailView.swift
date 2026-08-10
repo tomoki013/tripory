@@ -12,10 +12,10 @@ struct CountryDetailView: View {
     @Query private var records: [CountryRecord]
     @Query(sort: \TripStop.startDate, order: .reverse) private var allStops: [TripStop]
     @AppStorage("homeCountryCode") private var homeCountryCode = ""
-    @State private var showingAddTrip = false
     @State private var coverPhotoItem: PhotosPickerItem?
     @State private var isLoadingCover = false
     @State private var showingCoverPicker = false
+    @Environment(TripFlowCoordinator.self) private var tripFlow
 
     private var record: CountryRecord? { records.first { $0.code == country.code } }
     private var status: CountryStatus { record?.status ?? .none }
@@ -23,6 +23,8 @@ struct CountryDetailView: View {
     private var stops: [TripStop] { allStops.filter { $0.countryCode == country.code } }
     private var photos: [Data] { stops.flatMap(\.photos) }
     private var totalDays: Int { stops.reduce(0) { $0 + $1.dayCount } }
+    private var firstVisitDate: Date? { stops.map(\.startDate).min() }
+    private var latestVisitDate: Date? { stops.map(\.startDate).max() }
     /// ユーザーが選んだ表紙写真を最優先し、無ければ旅の写真から自動で選ぶ。
     private var heroPhotoData: Data? { record?.coverPhotoData ?? stops.flatMap(\.photos).first }
     private var hasCustomCover: Bool { record?.coverPhotoData != nil }
@@ -34,6 +36,7 @@ struct CountryDetailView: View {
                     hero
                     VStack(alignment: .leading, spacing: 28) {
                         if isHomeCountry { homeBadge }
+                        if !stops.isEmpty { visitDateSummary }
                         if !isHomeCountry && stops.isEmpty { relationshipSection }
                         if status == .wantToGo { wantToGoNoteSection }
                         if !photos.isEmpty { memoryMosaic }
@@ -53,7 +56,6 @@ struct CountryDetailView: View {
         .hidesNavigationBar()
         .swipeToGoBack()
         .navigationDestination(for: Trip.self) { TripDetailView(trip: $0) }
-        .sheet(isPresented: $showingAddTrip) { TripFormView(presetCountryCode: country.code) }
         // PhotosPicker は Menu の中に置くと開かないため、シート提示は独立させる。
         .photosPicker(isPresented: $showingCoverPicker, selection: $coverPhotoItem, matching: .images)
         .onChange(of: coverPhotoItem) { _, item in
@@ -125,7 +127,7 @@ struct CountryDetailView: View {
             .clipped()
 
             LinearGradient(
-                colors: [.clear, .black.opacity(0.2), .black.opacity(0.78)],
+                colors: [.clear, Color.triporyPhotoOverlay.opacity(0.2), Color.triporyPhotoOverlay.opacity(0.78)],
                 startPoint: .center,
                 endPoint: .bottom
             )
@@ -157,6 +159,29 @@ struct CountryDetailView: View {
     }
 
     // MARK: - Relationship
+
+    private var visitDateSummary: some View {
+        HStack(spacing: 10) {
+            visitDateTile(title: "初回訪問", date: firstVisitDate, symbol: "flag.checkered")
+            visitDateTile(title: "最終訪問", date: latestVisitDate, symbol: "clock.arrow.circlepath")
+        }
+    }
+
+    private func visitDateTile(title: LocalizedStringKey, date: Date?, symbol: String) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Label(title, systemImage: symbol)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(date?.formatted(date: .abbreviated, time: .omitted) ?? String(localized: "不明"))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.triporyInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Color.triporyCard, in: RoundedRectangle(cornerRadius: 18))
+    }
 
     private var homeBadge: some View {
         Label("今、住んでいる国", systemImage: "house.fill")
@@ -276,7 +301,7 @@ struct CountryDetailView: View {
 
     private var visitsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TriporySectionHeader(title: "訪れた旅", actionTitle: "追加", action: { showingAddTrip = true })
+            TriporySectionHeader(title: "訪れた旅", actionTitle: "追加", action: { tripFlow.presentNewTrip(presetCountryCode: country.code) })
             if stops.isEmpty {
                 Text("まだ旅の記録がありません")
                     .font(.subheadline)

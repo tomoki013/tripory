@@ -46,13 +46,41 @@ private struct InteractivePopGestureEnabler: UIViewControllerRepresentable {
             // 検知するために元のdelegateへ依存している可能性のある呼び出しまで失われ、
             // 「スワイプでは画面上は戻ったように見えるのにpathの中身が古いままで、
             // 何かの拍子(シート表示など)に元のpushへ戻ってしまう」という深刻な不具合を生んでいた。
-            // 初回だけ元のdelegateを保持し、以降は自前のdelegateへ差し替える
+            // 元のdelegateを保持して、以降は自前のdelegateへ差し替える
             // (自前のdelegateが未知のセレクタを元のdelegateへ転送する)。
-            if edgeDelegate.originalDelegate == nil {
-                edgeDelegate.originalDelegate = nav.interactivePopGestureRecognizer?.delegate
-            }
+            //
+            // 注意: interactivePopGestureRecognizer.delegateはweak参照であり、
+            // このPassthroughController(および自前のedgeDelegate)はpop後に解放される。
+            // 次にpushするときは全く新しいPassthroughController/edgeDelegateが作られるため、
+            // 「edgeDelegate.originalDelegateがnilなら今のdelegateを保持する」という
+            // インスタンス単位の判定だと、1回popした後は既にdelegateがnilに戻ってしまい、
+            // 2回目以降のpushで本来のdelegate(SwiftUI側)を二度と取得できなくなる。
+            // そのためnavigationController単位でOriginalPopDelegateBoxに1度だけ保持する。
+            OriginalPopDelegateBox.capture(nav.interactivePopGestureRecognizer?.delegate, for: nav)
+            edgeDelegate.originalDelegate = OriginalPopDelegateBox.original(for: nav)
             nav.interactivePopGestureRecognizer?.delegate = edgeDelegate
         }
+    }
+}
+
+/// interactivePopGestureRecognizer.delegateを差し替える前の「本来のdelegate」を
+/// UINavigationController単位で1度だけ保持する。delegateプロパティ自体はweak参照のため、
+/// 差し替え役(EdgeOnlyPopGestureDelegate)は画面がpopされるたびに解放されてしまうが、
+/// このBoxはUINavigationController(キー)が生きている限り本来のdelegateを強参照し続けるので、
+/// 同じスタックで2回目以降push/popを繰り返しても本来のdelegateを見失わない。
+private enum OriginalPopDelegateBox {
+    private static let table = NSMapTable<UINavigationController, AnyObject>.weakToStrongObjects()
+
+    static func capture(_ delegate: UIGestureRecognizerDelegate?, for nav: UINavigationController) {
+        guard table.object(forKey: nav) == nil,
+              let delegate,
+              !(delegate is EdgeOnlyPopGestureDelegate)
+        else { return }
+        table.setObject(delegate as AnyObject, forKey: nav)
+    }
+
+    static func original(for nav: UINavigationController) -> UIGestureRecognizerDelegate? {
+        table.object(forKey: nav) as? UIGestureRecognizerDelegate
     }
 }
 

@@ -3,19 +3,16 @@ import SwiftUI
 /// ホーム画面の写真は画面いっぱい(フルスクリーン)に表示される。編集プレビューの
 /// 縦横比がそれと違うと、編集画面でちょうど良く見えてもホームでは全然違う場所が
 /// 切り取られてしまう。編集用のプレビューはすべてこの比率(高さ/幅)に合わせる。
-let homeHeroScreenAspectRatio: CGFloat = {
-    let bounds = UIScreen.main.bounds
-    guard bounds.width > 0 else { return 16.0 / 7.0 }
-    return bounds.height / bounds.width
-}()
-
 /// 画面の縦横比のまま、指定の最大幅・最大高さに収まる編集プレビューのサイズを計算する。
 /// 比率を保ったまま画面いっぱいの高さまで伸ばすと編集画面を占領してしまうため、
 /// 見た目の精度(比率の正しさ)は保ちつつ、実際の表示サイズは程よく収める。
-func homeHeroPreviewSize(maxWidth: CGFloat, maxHeight: CGFloat) -> CGSize {
-    let widthFromHeight = maxHeight / homeHeroScreenAspectRatio
+func homeHeroPreviewSize(maxWidth: CGFloat, maxHeight: CGFloat, availableSize: CGSize) -> CGSize {
+    let aspectRatio = availableSize.width > 0
+        ? max(availableSize.height / availableSize.width, 1)
+        : 16.0 / 7.0
+    let widthFromHeight = maxHeight / aspectRatio
     let width = min(maxWidth, widthFromHeight)
-    return CGSize(width: width, height: width * homeHeroScreenAspectRatio)
+    return CGSize(width: width, height: width * aspectRatio)
 }
 
 struct HomeHeroCropView: View {

@@ -8,6 +8,8 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
+    @Environment(PurchaseManager.self) private var purchases
+    @Environment(ConsentManager.self) private var consent
     @Query private var records: [CountryRecord]
     @Query private var trips: [Trip]
     @Query private var profiles: [UserProfile]
@@ -39,6 +41,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         statsRow
                         settingsCard
+                        removeAdsCard
                         supportCard
                         cheerCard
                         aboutCard
@@ -121,18 +124,23 @@ struct SettingsView: View {
             } else {
                 PhotoPlaceholderView(symbol: "photo", title: "My World")
             }
-            LinearGradient(colors: [.clear, Color.triporyNavy.opacity(0.94)], startPoint: .center, endPoint: .bottom)
+            LinearGradient(colors: [.clear, Color.triporyPhotoOverlay.opacity(0.94)], startPoint: .center, endPoint: .bottom)
 
             VStack(alignment: .leading, spacing: 7) {
-                Text(verbatim: "MY WORLD")
-                    .font(.caption.weight(.black))
-                    .tracking(3)
-                    .foregroundStyle(Color.triporyCoral)
+                HStack(spacing: 6) {
+                    Text(verbatim: "MY WORLD")
+                        .font(.caption.weight(.black))
+                        .tracking(3)
+                        .foregroundStyle(Color.triporyCoral)
+                    BrandSparkle(size: 10)
+                }
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     Text("\(visitedCount)")
-                        .font(.system(size: 42, weight: .semibold, design: .serif).monospacedDigit())
+                        .font(TriporyTypography.brandNumber(42))
+                        .foregroundStyle(Color.triporyCoral)
                     Text(verbatim: "COUNTRIES")
                         .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.triporyGold)
                 }
                 if let homeCountry {
                     Text("\(homeCountry.name)から始まる、あなたの世界。")
@@ -191,7 +199,7 @@ struct SettingsView: View {
                 showingHomeCountryPicker = true
             } content: {
                 HStack {
-                    Label("住んでいる国", systemImage: "house.fill")
+                    Text("住んでいる国").foregroundStyle(Color.triporyInk)
                     Spacer()
                     if let homeCountry {
                         Text(homeCountry.flag)
@@ -211,7 +219,7 @@ struct SettingsView: View {
             divider
 
             HStack {
-                Label("外観", systemImage: "circle.lefthalf.filled")
+                Text("外観").foregroundStyle(Color.triporyInk)
                 Spacer()
                 Picker(selection: $appearanceModeRaw) {
                     ForEach(AppearanceMode.allCases) { mode in
@@ -230,7 +238,7 @@ struct SettingsView: View {
                 openURL(URL(string: UIApplication.openSettingsURLString)!)
             } content: {
                 HStack {
-                    Label("言語", systemImage: "globe")
+                    Text("言語").foregroundStyle(Color.triporyInk)
                     Spacer()
                     Image(systemName: "arrow.up.forward")
                         .font(.caption)
@@ -245,15 +253,9 @@ struct SettingsView: View {
     private var supportCard: some View {
         card(title: "サポート") {
             settingsRow {
-                openURL(mailURL(subject: "【不具合報告】Tripory"))
+                openURL(AppLinks.support)
             } content: {
-                externalRow("バグ・不具合報告")
-            }
-            divider
-            settingsRow {
-                openURL(mailURL(subject: "【ご意見・ご要望】Tripory"))
-            } content: {
-                externalRow("ご意見・ご要望を送る")
+                externalRow("お問い合わせ・不具合報告")
             }
             divider
             NavigationLink {
@@ -274,12 +276,14 @@ struct SettingsView: View {
 
     private var cheerCard: some View {
         card(title: "このアプリを応援する") {
-            settingsRow {
-                openURL(appStoreReviewURL)
-            } content: {
-                externalRow("App Storeで評価する")
+            if let reviewURL = AppLinks.reviewURL {
+                settingsRow {
+                    openURL(reviewURL)
+                } content: {
+                    externalRow("App Storeで評価する")
+                }
+                divider
             }
-            divider
             ShareLink(item: shareURL, message: Text(shareMessage)) {
                 HStack {
                     Text("このアプリを友達にシェアする").foregroundStyle(Color.triporyInk)
@@ -333,9 +337,7 @@ struct SettingsView: View {
     private var developerCard: some View {
         card(title: "開発者") {
             HStack(spacing: 12) {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(Color.triporyCoral)
+                AppIconThumbnail(size: 36)
                 Text(verbatim: "Tomokichi")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.triporyInk)
@@ -347,9 +349,9 @@ struct SettingsView: View {
             divider
 
             settingsRow {
-                openURL(URL(string: "https://tomokichi.dev")!)
+                openURL(AppLinks.brand)
             } content: {
-                externalRow("Webサイト")
+                externalRow("Tripory Webサイト")
             }
 
             divider
@@ -443,19 +445,8 @@ struct SettingsView: View {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     }
 
-    private func mailURL(subject: String) -> URL {
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? subject
-        return URL(string: "mailto:support@tripory-app.example?subject=\(encodedSubject)")!
-    }
-
-    /// TODO: 公開後、実際のApp Store IDに差し替える
-    private var appStoreReviewURL: URL {
-        URL(string: "https://apps.apple.com/app/id0000000000?action=write-review")!
-    }
-
-    /// TODO: 公開後、実際のApp StoreリンクをshareURLに差し替える
     private var shareURL: URL {
-        URL(string: "https://tomokichi.dev")!
+        AppLinks.brand
     }
 
     private var shareMessage: String {
@@ -469,6 +460,74 @@ struct SettingsView: View {
         // 住んでいる国は旅の記録ではなく設定なので、全データ削除後も訪問済みのまま保つ
         if !homeCountryCode.isEmpty {
             modelContext.record(for: homeCountryCode).status = .visited
+        }
+    }
+
+    private var removeAdsCard: some View {
+        card(title: "広告") {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(
+                    purchases.hasRemovedAds ? "広告削除済み" : "広告を削除",
+                    systemImage: purchases.hasRemovedAds ? "checkmark.seal.fill" : "rectangle.slash"
+                )
+                .font(.headline)
+                .foregroundStyle(purchases.hasRemovedAds ? Color.triporyCoral : Color.triporyInk)
+                .accessibilityIdentifier("removeAdsStatus")
+
+                Text(purchases.hasRemovedAds
+                     ? "このApple Accountではバナー広告と全画面広告が表示されません。"
+                     : "一度購入すれば、同じApple Accountで永久に広告が表示されなくなります。")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                if !purchases.hasRemovedAds {
+                    Button {
+                        Task { await purchases.purchase() }
+                    } label: {
+                        HStack {
+                            Text("広告を削除")
+                            Spacer()
+                            if purchases.isLoading {
+                                ProgressView()
+                            } else if let price = purchases.product?.displayPrice {
+                                Text(price).fontWeight(.semibold)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.large)
+                    .tint(Color.triporyCoral)
+                    .disabled(purchases.isLoading || purchases.product == nil)
+                    .accessibilityHint("Appleの購入画面を開きます")
+                }
+
+                Button("購入を復元") {
+                    Task { await purchases.restore() }
+                }
+                .disabled(purchases.isLoading)
+                .accessibilityIdentifier("restorePurchaseButton")
+
+                if consent.privacyOptionsRequired && !purchases.hasRemovedAds {
+                    Divider()
+                    Button("プライバシー設定", systemImage: "hand.raised") {
+                        Task { await consent.presentPrivacyOptions() }
+                    }
+                }
+
+                if let message = purchases.statusMessage {
+                    Text(message).font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityLabel(message)
+                }
+                if let error = purchases.errorMessage {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .accessibilityLabel("エラー、\(error)")
+                }
+            }
+            .padding(16)
         }
     }
 }
@@ -485,10 +544,15 @@ private struct HomePhotoEditorSheet: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var availableSize = CGSize(width: 390, height: 844)
 
     // 画面横幅からVStackの左右padding(24pt×2)を引いた、プレビューが実際に使える幅。
     private var cropPreviewSize: CGSize {
-        homeHeroPreviewSize(maxWidth: UIScreen.main.bounds.width - 48, maxHeight: 420)
+        homeHeroPreviewSize(
+            maxWidth: max(availableSize.width - 48, 1),
+            maxHeight: 420,
+            availableSize: availableSize
+        )
     }
 
     init(profile: UserProfile) {
@@ -565,6 +629,13 @@ private struct HomePhotoEditorSheet: View {
         .interactiveDismissDisabled()
         .onChange(of: pickerItem) { _, item in
             Task { await load(item) }
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { availableSize = proxy.size }
+                    .onChange(of: proxy.size) { _, size in availableSize = size }
+            }
         }
     }
 

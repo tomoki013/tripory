@@ -9,9 +9,14 @@ struct OnboardingHomePhotoStep: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var availableSize = CGSize(width: 390, height: 844)
 
     private var cropPreviewSize: CGSize {
-        homeHeroPreviewSize(maxWidth: UIScreen.main.bounds.width - 48, maxHeight: 380)
+        homeHeroPreviewSize(
+            maxWidth: max(availableSize.width - 48, 1),
+            maxHeight: 380,
+            availableSize: availableSize
+        )
     }
 
     var body: some View {
@@ -88,7 +93,7 @@ struct OnboardingHomePhotoStep: View {
                         isEnabled: profile.homeHeroPhotoData != nil && !isLoading,
                         action: onContinue
                     )
-                    .padding(.top, 12)
+                    .padding(.top, 18)
                     .padding(.bottom, 34)
                 }
                 .padding(.horizontal, 24)
@@ -97,6 +102,13 @@ struct OnboardingHomePhotoStep: View {
         }
         .onChange(of: pickerItem) { _, item in
             Task { await load(item) }
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { availableSize = proxy.size }
+                    .onChange(of: proxy.size) { _, size in availableSize = size }
+            }
         }
     }
 

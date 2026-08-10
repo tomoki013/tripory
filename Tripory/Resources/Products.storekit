@@ -1,0 +1,25 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [{ "locale" : "en_US", "policyText" : "", "policyURL" : "" }]
+  },
+  "identifier" : "AAB98D42",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "500",
+      "familyShareable" : false,
+      "internalID" : "C81B4E2F",
+      "localizations" : [
+        { "description" : "Triporyからすべての広告を削除します。", "displayName" : "広告を削除", "locale" : "ja_JP" },
+        { "description" : "Removes all advertising from Tripory.", "displayName" : "Remove Ads", "locale" : "en_US" }
+      ],
+      "productID" : "io.tmkch.tripory.removeads",
+      "referenceName" : "Remove Ads",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : { "_locale" : "ja_JP", "_storefront" : "JPN" },
+  "subscriptionGroups" : [],
+  "version" : { "major" : 3, "minor" : 0 }
+}

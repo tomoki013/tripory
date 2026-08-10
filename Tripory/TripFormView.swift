@@ -7,10 +7,10 @@ import PhotosUI
 struct TripFormView: View {
     var editingTrip: Trip?
     var presetCountryCode: String?
-    var onSaved: (([NewCountryReveal], Int) -> Void)? = nil
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(TripFlowCoordinator.self) private var tripFlow
     @AppStorage("homeCountryCode") private var homeCountryCode = ""
 
     @State private var stops: [StopDraft] = []
@@ -79,7 +79,7 @@ struct TripFormView: View {
                         // 初期状態は畳んでおき、必要な人だけ開いて使う。
                         detailsDisclosure
 
-                        PrimaryCapsuleButton(title: "この旅を保存する") {
+                        PrimaryCapsuleButton(title: "この旅を保存する", style: .coral) {
                             save()
                         }
                         .accessibilityHint("旅の記録を保存します")
@@ -327,71 +327,31 @@ struct TripFormView: View {
 
     private func save() {
         guard !stops.isEmpty else { return }
-
-        let existingStops = (try? modelContext.fetch(FetchDescriptor<TripStop>())) ?? []
-        let editingTripID = editingTrip?.persistentModelID
-        let newCountries = Dictionary(grouping: stops, by: \.countryCode)
-            .compactMap { code, drafts -> (Country, Date, Data?)? in
-                guard let country = CountryCatalog.byCode[code],
-                      let firstDraftDate = drafts.map(\.startDate).min()
-                else { return nil }
-                let hadEarlierVisit = existingStops.contains { existing in
-                    guard existing.countryCode == code,
-                          existing.trip?.persistentModelID != editingTripID
-                    else { return false }
-                    return existing.startDate < firstDraftDate
-                }
-                guard !hadEarlierVisit else { return nil }
-                let photo = drafts.compactMap(\.photos.first).first ?? heroPhotoData
-                return (country, firstDraftDate, photo)
-            }
-            .sorted { $0.1 < $1.1 }
-            .map { NewCountryReveal(country: $0.0, coverPhotoData: $0.2) }
-
-        let trip = editingTrip ?? Trip()
-        if editingTrip == nil { modelContext.insert(trip) }
-        let previousCodes = Set(trip.stops.map(\.countryCode))
-        for existingStop in trip.stops { modelContext.delete(existingStop) }
-
-        let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
-        trip.title = trimmedTitle.isEmpty ? suggestedTitle : trimmedTitle
-        trip.note = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        trip.heroPhotoData = heroPhotoData
-
-        for (index, draft) in stops.enumerated() {
-            let stop = TripStop(
-                order: index,
-                countryCode: draft.countryCode,
-                startDate: draft.startDate,
-                endDate: draft.hasEndDate ? draft.endDate : nil,
-                photos: draft.photos
-            )
-            stop.trip = trip
-            modelContext.insert(stop)
-
-            // 行きたい国だった場合も、実際に訪れたので訪問済みに切り替える
-            modelContext.record(for: draft.countryCode).status = .visited
-        }
-
-        // 編集で訪問先から外された国は、他に参照がなければ訪問済みを取り消す
-        let removedCodes = previousCodes.subtracting(stops.map(\.countryCode))
-        modelContext.revertStatusIfOrphaned(codes: removedCodes, homeCountryCode: homeCountryCode)
-
         do {
-            try modelContext.save()
-            let recordCount = (try? modelContext.fetch(FetchDescriptor<CountryRecord>()))?
-                .filter { $0.status.countsAsVisited && $0.code != homeCountryCode }
-                .count ?? 0
+            let outcome = try TripSaveService.save(
+                context: modelContext,
+                editingTrip: editingTrip,
+                title: title,
+                suggestedTitle: suggestedTitle,
+                note: note,
+                heroPhotoData: heroPhotoData,
+                stops: stops.map {
+                    TripStopInput(
+                        countryCode: $0.countryCode,
+                        startDate: $0.startDate,
+                        endDate: $0.hasEndDate ? $0.endDate : nil,
+                        photos: $0.photos
+                    )
+                },
+                homeCountryCode: homeCountryCode
+            )
             dismiss()
-            if !newCountries.isEmpty {
+            if !outcome.result.newlyVisitedCountryCodes.isEmpty {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    onSaved?(newCountries, recordCount)
+                    tripFlow.accept(outcome)
                 }
-            } else {
-                onSaved?(newCountries, recordCount)
             }
         } catch {
-            modelContext.rollback()
             saveError = error.localizedDescription
         }
     }
@@ -413,6 +373,9 @@ private struct StopEditorRow: View {
         VStack(alignment: .leading, spacing: 12) {
             headerRow
             photoPicker
+            Label("写真はお使いの端末にのみ保存され、どこにも送信されません", systemImage: "lock.shield")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             DatePicker("訪れた日", selection: $stop.startDate, displayedComponents: .date)
                 .font(.subheadline)
             Toggle("滞在期間を記録", isOn: $stop.hasEndDate.animation())
