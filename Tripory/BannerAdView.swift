@@ -76,6 +76,18 @@ struct RootBannerAd: View {
     }
 }
 
+/// GADBannerViewを直接SwiftUIへ渡すと、実機で本番の(仲介ネットワーク経由の)広告を
+/// 読み込んだ際に、広告SDK側が自分自身のframeをSwiftUIの指定と無関係に書き換え、
+/// その結果ヒットテスト領域も広告SDKの都合で決まってしまい、直下・直上のボタン
+/// (追加ボタンやタブバー)のタップを奪う不具合が実機でのみ確認された
+/// (Debugのテスト広告は小さく自己伸縮しないため、シミュレーターでは再現しない)。
+/// SwiftUIが唯一frameを制御する素のUIViewを間に挟み、GADBannerViewはその中の
+/// 子ビューとして扱うことで、広告SDKが何をしてもヒットテスト領域が外側のframeを
+/// 超えないようにする(UIViewのhitTestはまず自分自身のboundsで足切りされるため)。
+private final class BannerContainerView: UIView {
+    weak var bannerView: BannerView?
+}
+
 private struct BannerRepresentable: UIViewRepresentable {
     let unitID: String
     let size: AdSize
@@ -83,15 +95,31 @@ private struct BannerRepresentable: UIViewRepresentable {
     let onFailed: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(onLoaded: onLoaded, onFailed: onFailed) }
-    func makeUIView(context: Context) -> BannerView {
+    func makeUIView(context: Context) -> BannerContainerView {
+        let container = BannerContainerView()
+        container.clipsToBounds = true
+
         let view = BannerView(adSize: size)
         view.adUnitID = unitID
         view.delegate = context.coordinator
         view.clipsToBounds = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(view)
+        NSLayoutConstraint.activate([
+            view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            view.topAnchor.constraint(equalTo: container.topAnchor),
+            view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+        container.bannerView = view
+
         context.coordinator.scheduleLoad(view, size: size)
-        return view
+        return container
     }
-    func updateUIView(_ view: BannerView, context: Context) { context.coordinator.load(view, size: size) }
+    func updateUIView(_ container: BannerContainerView, context: Context) {
+        guard let view = container.bannerView else { return }
+        context.coordinator.load(view, size: size)
+    }
 
     final class Coordinator: NSObject, BannerViewDelegate {
         let onLoaded: () -> Void

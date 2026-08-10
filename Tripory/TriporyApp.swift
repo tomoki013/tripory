@@ -166,7 +166,13 @@ struct RootView: View {
             // 挟まると、ウィンドウの素の背景(黒)がちらつく。TabView自体に控えめな
             // 地色を敷いておき、そのちらつきが黒でなくこの色になるようにする。
             .background(Color.triporyCanvas)
-            .overlay(alignment: .bottom) {
+            // 以前は`.overlay(alignment: .bottom)` + タブバーの高さを固定値(61pt)で
+            // 見積もったpaddingで「+」ボタンと広告をタブバーの上に浮かせていたが、
+            // その見積もりが実機・OSバージョンによっては実際のタブバーの形状・高さと
+            // ずれ、タブバーや「+」ボタンのタップが奪われる不具合につながっていた。
+            // `safeAreaInset`はタブバーが実際にどんな高さ・形であっても、その直上に
+            // 正しく積み重なる標準の仕組みなので、高さを推測する必要がない。
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 if !keyboardVisible && !consent.isPresentingForm && !ads.isPresentingInterstitial {
                     VStack(spacing: 8) {
                         HStack {
@@ -189,9 +195,8 @@ struct RootView: View {
                             RootBannerAd(width: geometry.size.width)
                         }
                     }
-                    // システムタブバー(約49pt)とその上の視覚的余白を確保する。
-                    // セーフエリアは端末・横画面ごとの実測値を使用する。
-                    .padding(.bottom, geometry.safeAreaInsets.bottom + 61)
+                    .padding(.top, 10)
+                    .padding(.bottom, 8)
                 }
             }
         }

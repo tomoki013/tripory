@@ -184,9 +184,7 @@ struct WorldView: View {
                 }
             }
             .padding(.horizontal, 18)
-            // 右下に浮かぶ追加ボタンと、その上に重なるバナー広告の分、最後のカードが
-            // 隠れないよう余白を確保する(広告は読み込み後に最大150ptまで伸びる)。
-            .padding(.bottom, 230)
+            .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
     }
@@ -330,8 +328,7 @@ struct WorldView: View {
                 }
             }
             .padding(.horizontal, 16)
-            // 追加ボタン+バナー広告と重ならないよう余白を確保する。
-            .padding(.bottom, 230)
+            .padding(.bottom, 16)
         }
     }
 

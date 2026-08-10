@@ -50,9 +50,7 @@ struct HomeView: View {
                         bottomBlock
                     }
                     .padding(.horizontal, 24)
-                    // 右下に浮かぶ追加ボタンと、その上に重なるバナー広告の分、CTAボタンが
-                    // 隠れないよう余白を確保する(広告は読み込み後に最大150ptまで伸びる)。
-                    .padding(.bottom, 230)
+                    .padding(.bottom, 24)
                     .frame(minHeight: proxy.size.height, alignment: .top)
                 }
                 .scrollIndicators(.hidden)

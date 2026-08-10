@@ -4,6 +4,10 @@ import Observation
 import UIKit
 import UserMessagingPlatform
 
+enum ConsentError: Error {
+    case noPresenter
+}
+
 @MainActor
 @Observable
 final class ConsentManager {
@@ -30,7 +34,14 @@ final class ConsentManager {
             try await ConsentInformation.shared.requestConsentInfoUpdate(with: parameters)
             isPresentingForm = true
             defer { isPresentingForm = false }
-            try await ConsentForm.loadAndPresentIfRequired(from: nil)
+            // `from: nil`だと提示元のView Controllerが見つからず、フォームが正しく
+            // 描画・操作できないまま画面全体のタップを奪い続ける不具合が実機でのみ
+            // 発生していた(シミュレーターでは同意フォーム自体がほぼ発火しないため
+            // 再現しなかった)。必ず実際のroot view controllerを渡す。
+            guard let presenter = Self.activeRootViewController else {
+                throw ConsentError.noPresenter
+            }
+            try await ConsentForm.loadAndPresentIfRequired(from: presenter)
         } catch {
             print("[Tripory Ads] UMP consent update failed: \(error.localizedDescription)")
         }
@@ -49,7 +60,10 @@ final class ConsentManager {
         isPresentingForm = true
         defer { isPresentingForm = false }
         do {
-            try await ConsentForm.presentPrivacyOptionsForm(from: nil)
+            guard let presenter = Self.activeRootViewController else {
+                throw ConsentError.noPresenter
+            }
+            try await ConsentForm.presentPrivacyOptionsForm(from: presenter)
         } catch {
             print("[Tripory Ads] Privacy options failed: \(error.localizedDescription)")
         }
@@ -59,6 +73,14 @@ final class ConsentManager {
     private func refreshFlags() {
         canRequestAds = ConsentInformation.shared.canRequestAds
         privacyOptionsRequired = ConsentInformation.shared.privacyOptionsRequirementStatus == .required
+    }
+
+    private static var activeRootViewController: UIViewController? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController
     }
 
     private func requestTrackingIfNeeded() async {
