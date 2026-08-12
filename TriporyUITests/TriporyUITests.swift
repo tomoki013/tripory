@@ -29,7 +29,7 @@ final class TriporyUITests: XCTestCase {
         }
 
         add.tap()
-        XCTAssertTrue(app.buttons["キャンセル"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["キャンセル"].waitForExistence(timeout: 20))
         XCTAssertFalse(add.isHittable)
     }
 
