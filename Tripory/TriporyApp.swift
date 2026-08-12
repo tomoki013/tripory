@@ -166,13 +166,15 @@ struct RootView: View {
             // 挟まると、ウィンドウの素の背景(黒)がちらつく。TabView自体に控えめな
             // 地色を敷いておき、そのちらつきが黒でなくこの色になるようにする。
             .background(Color.triporyCanvas)
-            // 以前は`.overlay(alignment: .bottom)` + タブバーの高さを固定値(61pt)で
-            // 見積もったpaddingで「+」ボタンと広告をタブバーの上に浮かせていたが、
-            // その見積もりが実機・OSバージョンによっては実際のタブバーの形状・高さと
-            // ずれ、タブバーや「+」ボタンのタップが奪われる不具合につながっていた。
-            // `safeAreaInset`はタブバーが実際にどんな高さ・形であっても、その直上に
-            // 正しく積み重なる標準の仕組みなので、高さを推測する必要がない。
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            // iOS26のフローティング(Liquid Glass)タブバーは、システムのオーバーレイ
+            // として画面最前面に描画されるため、`.safeAreaInset(edge: .bottom)`で
+            // 積んだコンテンツはタブバーの"上"ではなく"背後"に回り込み、タブバーと
+            // 重なって見える(以前の固定値61ptの見積もりに代わり導入したが、
+            // フローティングタブバー特有のこの問題までは解消しなかった)。
+            // `.tabViewBottomAccessory`はこのタブバーと共存するために導入された
+            // 標準APIで、タブバーの実際の高さ・形に関わらずその直上に正しく
+            // 積み重ねてくれる。
+            .tabViewBottomAccessory {
                 if !keyboardVisible && !consent.isPresentingForm && !ads.isPresentingInterstitial {
                     VStack(spacing: 8) {
                         HStack {
@@ -195,7 +197,7 @@ struct RootView: View {
                             RootBannerAd(width: geometry.size.width)
                         }
                     }
-                    .padding(.top, 10)
+                    .padding(.top, 8)
                     .padding(.bottom, 8)
                 }
             }
