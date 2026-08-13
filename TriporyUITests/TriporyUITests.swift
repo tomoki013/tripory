@@ -3,7 +3,12 @@ import XCTest
 final class TriporyUITests: XCTestCase {
     private func launch(additionalArguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting"] + additionalArguments
+        // このテストスイートは全体を通して日本語のラベル("マイページ"、"広告を削除"等)で
+        // 要素を検索している。CIのシミュレータは言語設定がローカル環境と異なることがあり、
+        // 一部の文字列(英語訳が存在するもの)だけが翻訳されて表示され、検索に失敗する
+        // (未翻訳の文字列はベースの日本語のまま表示されるため、この不整合は一部のassertでしか
+        // 顕在化しない)。テストの前提を環境に依存させないよう、言語を明示的に固定する。
+        app.launchArguments = ["-uiTesting", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"] + additionalArguments
         app.launch()
         return app
     }
@@ -29,7 +34,7 @@ final class TriporyUITests: XCTestCase {
         }
 
         add.tap()
-        XCTAssertTrue(app.buttons["キャンセル"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.buttons["キャンセル"].waitForExistence(timeout: 8))
         XCTAssertFalse(add.isHittable)
     }
 
