@@ -69,6 +69,7 @@
 		EBD2D97DC7D03C0915F0E000 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 2AC77700246B4CA07E6ACBA0 /* GoogleMobileAds */; };
 		ED45FBA46F5E083B14703DD6 /* OnboardingReadyStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08CBD7E711C914E0B08247D7 /* OnboardingReadyStep.swift */; };
 		F5E08C9F974FA928A2AC9043 /* TriporyTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73EEC32B46878261AF18BA6A /* TriporyTabBar.swift */; };
+		FB800D318522F9D78969FE9B /* AppStoreScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44D3BBDE26C663E485B235F1 /* AppStoreScreenshotTests.swift */; };
 		FFB99C3729E25A5687C47A7C /* CountryMemorySummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2944C0BCF0A31B21BCD05C4 /* CountryMemorySummaryTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -106,6 +107,7 @@
 		37CF2D1D4450C69122AA9C98 /* CountryCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryCoordinates.swift; sourceTree = "<group>"; };
 		3F6F100F5F194E890ABD6844 /* TripModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripModelTests.swift; sourceTree = "<group>"; };
 		42BA1F57A257575DB499C2C2 /* LegalText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalText.swift; sourceTree = "<group>"; };
+		44D3BBDE26C663E485B235F1 /* AppStoreScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreScreenshotTests.swift; sourceTree = "<group>"; };
 		4676E822D23D26E6292E50F0 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		4DD6B055679D65C12F830030 /* CountryBorders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryBorders.swift; sourceTree = "<group>"; };
 		5DE81BC70832CFFF463ACB7A /* NewCountriesRevealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewCountriesRevealView.swift; sourceTree = "<group>"; };
@@ -232,6 +234,7 @@
 		9CBA8AD654C04C85102BF393 /* TriporyUITests */ = {
 			isa = PBXGroup;
 			children = (
+				44D3BBDE26C663E485B235F1 /* AppStoreScreenshotTests.swift */,
 				EC2503B4993069FAD7BDC459 /* TriporyUITests.swift */,
 			);
 			path = TriporyUITests;
@@ -545,6 +548,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB800D318522F9D78969FE9B /* AppStoreScreenshotTests.swift in Sources */,
 				CFF0734AF2545337D9FA0917 /* TriporyUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

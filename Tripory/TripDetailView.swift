@@ -56,6 +56,7 @@ struct TripDetailView: View {
         }
         .background(Color.triporyNavy.ignoresSafeArea())
         .hidesNavigationBar()
+        .accessibilityIdentifier("tripDetailScreen")
         .swipeToGoBack()
         // preferredColorSchemeはシーン全体へ伝播してしまうため、この画面配下だけダークにする。
         .environment(\.colorScheme, .dark)

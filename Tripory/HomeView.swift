@@ -57,6 +57,7 @@ struct HomeView: View {
             }
             .background { heroBackground }
             .hidesNavigationBar()
+            .accessibilityIdentifier("homeScreen")
             .navigationDestination(for: Trip.self) { TripDetailView(trip: $0) }
             .navigationDestination(for: Country.self) { CountryDetailView(country: $0) }
         }

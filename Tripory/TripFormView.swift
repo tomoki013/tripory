@@ -91,6 +91,7 @@ struct TripFormView: View {
             }
             .scrollIndicators(.hidden)
             .background(Color.triporyCanvas)
+            .accessibilityIdentifier("tripFormScreen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

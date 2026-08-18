@@ -23,4 +23,15 @@ enum RootDestination: Hashable {
         case .me: return "person.crop.circle"
         }
     }
+
+    /// UIテスト(App Storeスクリーンショット撮影など)がタブバーを言語非依存で
+    /// タップできるようにするための識別子。
+    var identifierSuffix: String {
+        switch self {
+        case .home: return "home"
+        case .trips: return "trips"
+        case .world: return "world"
+        case .me: return "me"
+        }
+    }
 }

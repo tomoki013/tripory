@@ -277,6 +277,7 @@ struct RootView: View {
         Tab(value: destination, content: content) {
             Label(destination.label, systemImage: destination.symbol)
                 .labelStyle(.iconOnly)
+                .accessibilityIdentifier("tab-\(destination.identifierSuffix)")
         }
     }
 

@@ -121,11 +121,20 @@ struct WorldView: View {
             }
             .background(mode == .collection ? Color.triporyCanvas : Color.triporyNavy)
             .hidesNavigationBar()
+            .accessibilityIdentifier(worldModeAccessibilityIdentifier)
             .navigationDestination(for: Country.self) { CountryDetailView(country: $0) }
             // リキッドグラスは背景色の変化を自前で追従しようとするため、切り替えを
             // ゆっくりアニメーションすると「ガラスの色が遅れて追いつく」ように見える。
             // 背景色そのものは即座に切り替え、レイアウトの入れ替わりだけを短く馴染ませる。
             .animation(.easeOut(duration: 0.12), value: mode)
+        }
+    }
+
+    private var worldModeAccessibilityIdentifier: String {
+        switch mode {
+        case .collection: return "worldCollectionScreen"
+        case .globe: return "worldGlobeScreen"
+        case .flatMap: return "worldFlatMapScreen"
         }
     }
 

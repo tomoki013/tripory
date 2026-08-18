@@ -63,6 +63,7 @@ struct TripTimelineView: View {
             .scrollIndicators(.hidden)
             .background(Color.triporyCanvas)
             .hidesNavigationBar()
+            .accessibilityIdentifier("tripTimelineScreen")
             .navigationDestination(for: Trip.self) { TripDetailView(trip: $0) }
             .navigationDestination(for: Country.self) { CountryDetailView(country: $0) }
             .sheet(item: $editingTrip) { trip in
